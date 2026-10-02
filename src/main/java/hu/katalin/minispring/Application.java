@@ -1,35 +1,38 @@
 package hu.katalin.minispring;
 
 import java.lang.reflect.Constructor;
+import java.util.Set;
 
 public class Application {
 
     public static void main(String[] args) {
         System.out.println("--- Mini-Spring Container Starting ---");
 
-        // 1. Obtain the Class object (metadata) for the target class
-        Class<?> targetClass = UserService.class;
+        // 1. Initialize our scanner
+        ComponentScanner scanner = new ComponentScanner();
 
-        // 2. Use Reflection to check if our custom annotation is present
-        if (targetClass.isAnnotationPresent(MyComponent.class)) {
-            System.out.println("Success! Found @MyComponent on class: " + targetClass.getSimpleName());
-            
+        // 2. Scan the base package
+        System.out.println("Scanning package: hu.katalin.minispring");
+        Set<Class<?>> componentClasses = scanner.scan("hu.katalin.minispring");
+
+        System.out.println("Found " + componentClasses.size() + " component(s).");
+
+        // 3. Iterate through found components and instantiate them
+        for (Class<?> clazz : componentClasses) {
+            System.out.println("Processing class: " + clazz.getSimpleName());
             try {
-                // 3. Retrieve the default (no-args) constructor via Reflection
-                Constructor<?> constructor = targetClass.getDeclaredConstructor();
-                
-                // 4. CREATE THE INSTANCE dynamically without using the 'new' keyword in the business logic
+                Constructor<?> constructor = clazz.getDeclaredConstructor();
                 Object instance = constructor.newInstance();
-                
-                // 5. Cast the instance and invoke a method to verify it works
-                UserService userService = (UserService) instance;
-                userService.doWork();
 
+                // Just to prove it works dynamically (if it's the UserService, call doWork)
+                if (instance instanceof UserService) {
+                    ((UserService) instance).doWork();
+                }
             } catch (Exception e) {
-                System.err.println("Error during instantiation: " + e.getMessage());
+                System.err.println("Failed to instantiate " + clazz.getName() + ": " + e.getMessage());
             }
-        } else {
-            System.out.println("Annotation @MyComponent not found.");
         }
+
+        System.out.println("--- Mini-Spring Container Started ---");
     }
 }
