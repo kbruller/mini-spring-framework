@@ -7,10 +7,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * The core IoC Container.
- * It manages the lifecycle and storage of all beans (components) in the application.
- */
 public class ApplicationContext {
 
     // 1. Standard Java Logger  (Enterprise best practice)
@@ -19,44 +15,80 @@ public class ApplicationContext {
     // The repository: The Key is the Class type, and the Value is the Object.
     private final Map<Class<?>, Object> beans = new ConcurrentHashMap<>();
 
-    /**
-     * Constructor that boots up the container.
-     */
+    // All the classes found that will be used to create a bean
+    private final Set<Class<?>> componentClasses;
+
     public ApplicationContext(String basePackage) {
-        logger.info("Starting Mini-Spring ApplicationContext...");
+        logger.info("Starting Mini-Spring ApplicationContext DI Engine...");
 
         // Scan for components
         ComponentScanner scanner = new ComponentScanner();
-        Set<Class<?>> componentClasses = scanner.scan(basePackage);
+        this.componentClasses = scanner.scan(basePackage);
 
-        // Instantiate and register beans
+        // We'll go through all the components we've found, and if any aren't already in the repository, we'll build them
         for (Class<?> clazz : componentClasses) {
-            try {
-                Constructor<?> constructor = clazz.getDeclaredConstructor();
-                Object instance = constructor.newInstance();
-
-                beans.put(clazz, instance);
-
-                logger.info("Registered bean: " + clazz.getSimpleName());
-            } catch (Exception e) {
-                // 2. Itt cseréltük le a printStackTrace-t egy profi ERROR (SEVERE) logra,
-                // ami átadja magát a kivételt (e) is a loggernek, így a stack trace is megmarad, de strukturáltan!
-                logger.log(Level.SEVERE, "Failed to instantiate bean for class: " + clazz.getName(), e);
+            if (!beans.containsKey(clazz)) {
+                createBean(clazz);
             }
         }
     }
 
     /**
-     * Retrieves a bean from the container by its class type.
+     * RECURSIVE DEPENDENCY RESOLUTION ALGORITHM (Dependency Graph Resolver)
      */
+    private Object createBean(Class<?> clazz) {
+        // If we've already created this bean recursively because of another class, just return it
+        if (beans.containsKey(clazz)) {
+            return beans.get(clazz);
+        }
+
+        try {
+            // 1. Find the matching constructor (either the one with @MyAutowired or the first one)
+            Constructor<?>[] constructors = clazz.getDeclaredConstructors();
+            Constructor<?> constructorToUse = constructors[0];
+
+            for (Constructor<?> constructor : constructors) {
+                if (constructor.isAnnotationPresent(MyAutowired.class)) {
+                    constructorToUse = constructor;
+                    break;
+                }
+            }
+
+            // 2. We collect the types of the constructor's parameters (the dependencies!)
+            Class<?>[] parameterTypes = constructorToUse.getParameterTypes();
+            Object[] parameterInstances = new Object[parameterTypes.length];
+
+            // 3. RECURSION: We must have the container create each dependency
+            for (int i = 0; i < parameterTypes.length; i++) {
+                Class<?> paramType = parameterTypes[i];
+                logger.info("Resolving dependency: " + paramType.getSimpleName() + " for " + clazz.getSimpleName());
+
+                // Build the dependency (if it isn't already built)
+                Object dependency = createBean(paramType);
+                parameterInstances[i] = dependency;
+            }
+
+            // 4. CREATION: Now that we have all the dependencies, we'll instantiate the object
+            Object instance = constructorToUse.newInstance(parameterInstances);
+
+            // 5. REGISTRATION: Added to the repository
+            beans.put(clazz, instance);
+            logger.info("Successfully created and injected bean: " + clazz.getSimpleName());
+
+            return instance;
+
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Failed to instantiate bean for class: " + clazz.getName(), e);
+            throw new RuntimeException("DI Failure", e);
+        }
+    }
+
     @SuppressWarnings("unchecked")
     public <T> T getBean(Class<T> clazz) {
         T bean = (T) beans.get(clazz);
-
         if (bean == null) {
-            throw new RuntimeException("No bean found for class: " + clazz.getName());
+            throw new RuntimeException("No bean found in registry for class: " + clazz.getName());
         }
-
         return bean;
     }
 }
