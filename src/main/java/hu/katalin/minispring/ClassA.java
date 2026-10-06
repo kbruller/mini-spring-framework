@@ -1,6 +1,6 @@
 package hu.katalin.minispring;
 
-@MyComponent
+// @MyComponent // Uncomment to test CircularDependencyException
 public class ClassA {
     private final ClassB classB;
 
