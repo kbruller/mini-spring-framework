@@ -1,4 +1,4 @@
-package hu.katalin.minispring;
+package hu.katalin.minispring.framework.core;
 
 /**
  * Thrown when the DI container detects a circular dependency between beans.

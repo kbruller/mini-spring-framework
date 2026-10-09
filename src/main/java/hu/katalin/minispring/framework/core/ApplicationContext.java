@@ -1,4 +1,7 @@
-package hu.katalin.minispring;
+package hu.katalin.minispring.framework.core;
+
+import hu.katalin.minispring.framework.aop.AopProxyHandler;
+import hu.katalin.minispring.framework.annotation.MyAutowired;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Proxy;

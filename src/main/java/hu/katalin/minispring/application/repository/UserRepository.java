@@ -1,4 +1,6 @@
-package hu.katalin.minispring;
+package hu.katalin.minispring.application.repository;
+
+import hu.katalin.minispring.framework.annotation.MyComponent;
 
 @MyComponent
 public class UserRepository {

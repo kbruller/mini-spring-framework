@@ -1,4 +1,4 @@
-package hu.katalin.minispring;
+package hu.katalin.minispring.application.service;
 
 public interface OrderService {
     void placeOrder();

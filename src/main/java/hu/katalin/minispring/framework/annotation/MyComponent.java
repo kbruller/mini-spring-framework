@@ -1,4 +1,4 @@
-package hu.katalin.minispring;
+package hu.katalin.minispring.framework.annotation;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

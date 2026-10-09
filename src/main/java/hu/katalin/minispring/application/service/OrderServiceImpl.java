@@ -1,4 +1,7 @@
-package hu.katalin.minispring;
+package hu.katalin.minispring.application.service;
+
+import hu.katalin.minispring.framework.annotation.MyComponent;
+import hu.katalin.minispring.framework.annotation.MyTransactional;
 
 @SuppressWarnings("unused")
 @MyComponent

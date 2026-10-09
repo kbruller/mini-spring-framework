@@ -1,4 +1,6 @@
-package hu.katalin.minispring;
+package hu.katalin.minispring.framework.core;
+
+import hu.katalin.minispring.framework.annotation.MyComponent;
 
 import java.io.File;
 import java.net.URL;

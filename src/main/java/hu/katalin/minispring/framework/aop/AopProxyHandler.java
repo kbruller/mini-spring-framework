@@ -1,4 +1,6 @@
-package hu.katalin.minispring;
+package hu.katalin.minispring.framework.aop;
+
+import hu.katalin.minispring.framework.annotation.MyTransactional;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;

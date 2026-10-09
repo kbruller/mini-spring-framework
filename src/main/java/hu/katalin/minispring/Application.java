@@ -1,10 +1,13 @@
 package hu.katalin.minispring;
 
+import hu.katalin.minispring.application.service.OrderService;
+import hu.katalin.minispring.framework.core.ApplicationContext;
+
 public class Application {
 
     public static void main(String[] args) {
         // 1. Boot up the IoC container (this will scan and instantiate everything)
-        ApplicationContext context = new ApplicationContext("hu.katalin.minispring");
+        ApplicationContext context = new ApplicationContext("hu.katalin.minispring.application");
 
         System.out.println("\n--- Application is Running ---\n");
 
