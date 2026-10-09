@@ -8,16 +8,13 @@ public class Application {
 
         System.out.println("\n--- Application is Running ---\n");
 
-        // 2. Ask the container for the UserService bean
-        UserService userService = context.getBean(UserService.class);
+        // 2. Ask the container for the OrderService bean
+        // IMPORTANT: We request the Interface from the Repository, because the Proxy implements it!
+        OrderService orderService = context.getBean(OrderService.class);
 
-        // 3. Ask it again! (To prove it's a Singleton, it will return the exact same instance)
-        UserService userService2 = context.getBean(UserService.class);
+        System.out.println("Executing placeOrder()...");
 
-        // 4. Verify they are the same object in memory
-        System.out.println("Are both instances the same object in memory? " + (userService == userService2));
-
-        // 5. Execute business logic
-        userService.doWork();
+        // This call really goes directly to the proxy (to the `invoke` method of `AopProxyHandler`)!
+        orderService.placeOrder();
     }
 }

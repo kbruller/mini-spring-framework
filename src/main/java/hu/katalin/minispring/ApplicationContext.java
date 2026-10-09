@@ -1,6 +1,7 @@
 package hu.katalin.minispring;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Proxy;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -22,7 +23,6 @@ public class ApplicationContext {
         logger.info("Starting Mini-Spring ApplicationContext DI Engine...");
 
         ComponentScanner scanner = new ComponentScanner();
-        // IDE Warning fixed: componentClasses is now a local variable!
         Set<Class<?>> componentClasses = scanner.scan(basePackage);
 
         for (Class<?> clazz : componentClasses) {
@@ -68,10 +68,27 @@ public class ApplicationContext {
                 parameterInstances[i] = dependency;
             }
 
+            // 1. We create the ORIGINAL (Target) object
             Object instance = constructorToUse.newInstance(parameterInstances);
 
+            // --- AOP WEAVING START ---
+            // Let's check whether the class implements any interfaces.
+            // The JDK Dynamic Proxy works ONLY with interfaces!
+            Class<?>[] interfaces = clazz.getInterfaces();
+            if (interfaces.length > 0) {
+                // We wrap the original object in our AopProxyHandler
+                instance = Proxy.newProxyInstance(
+                        clazz.getClassLoader(),
+                        interfaces,
+                        new AopProxyHandler(instance)
+                );
+                logger.info("Wrapped bean in AOP Proxy: " + clazz.getSimpleName());
+            }
+            // --- AOP WEAVING END ---
+
+            // 2. IMPORTANT: We are going to put the PROXY into the Warehouse here, not the original object!
             beans.put(clazz, instance);
-            logger.info("Successfully created and injected bean: " + clazz.getSimpleName());
+            logger.info("Successfully created AOP Proxy: " + instance.getClass().getSimpleName());
 
             return instance;
 
@@ -88,12 +105,30 @@ public class ApplicationContext {
         }
     }
 
+    /**
+     * Retrieves a bean from the container.
+     * Now supports Polymorphism (requesting an Interface and getting the Implementation/Proxy).
+     */
     @SuppressWarnings("unchecked")
-    public <T> T getBean(Class<T> clazz) {
-        T bean = (T) beans.get(clazz);
-        if (bean == null) {
-            throw new RuntimeException("No bean found in registry for class: " + clazz.getName());
+    public <T> T getBean(Class<T> requestedType) {
+
+        // 1. Quick Search: Is there a complete match for the key?
+        Object bean = beans.get(requestedType);
+        if (bean != null) {
+            return (T) bean;
         }
-        return bean;
+
+        // 2. Polymorphic search: We scan the Repository to see if there is a stored Class
+        // that implements the requested Interface or is a subclass of the requested Base Class.
+        for (Map.Entry<Class<?>, Object> entry : beans.entrySet()) {
+            Class<?> registeredClass = entry.getKey();
+
+            if (requestedType.isAssignableFrom(registeredClass)) {
+                return (T) entry.getValue();
+            }
+        }
+
+        // If we've gone through everything and there isn't one, then the bean is really missing.
+        throw new RuntimeException("No bean found in registry for type: " + requestedType.getName());
     }
 }
